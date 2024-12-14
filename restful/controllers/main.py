@@ -179,11 +179,11 @@ class APIController(http.Controller):
                 if payload.get('partner_ref'):
                     vendor = request.env['res.partner'].search([('ref', '=', payload.get('partner_ref'))])
                     if not vendor:
-                        vendor = request.env['res.partner'].create({'name': payload.get('partner_name'), 'ref': payload.get('ref')})
+                        vendor = request.env['res.partner'].create({'name': payload.get('partner_name'), 'ref': payload.get('ref'), 'customer': False, 'supplier': True})
                 else:
-                    vendor = request.env['res.partner'].create({'name': payload.get('partner_name'), 'ref': payload.get('ref')})
+                    vendor = request.env['res.partner'].create({'name': payload.get('partner_name'), 'ref': payload.get('ref'), 'customer': False, 'supplier': True })
                 bill_values = {
-                    'name': payload.get('number'),
+                    # 'name': payload.get('number'),
                     'number': payload.get('number'),
                     'type': payload.get('type'),
                     'state': payload.get('state'),
@@ -191,7 +191,7 @@ class APIController(http.Controller):
                     'date_invoice': payload.get('date_invoice'),
                     'date_due': payload.get('date_due')
                 }
-                bill = request.env['account.invoice'].with_context(context).sudo().create(bill_values)
+                bill = request.env['account.invoice'].with_context(context).sudo(request.uid).create(bill_values)
                 bill_line_values = payload.get('invoice_line_ids', [])
                 for line in bill_line_values:
                     # if line.get('product_ref'):
@@ -203,6 +203,10 @@ class APIController(http.Controller):
                     #         {'name': line.get('product_name'), 'default_code': line.get('product_ref')})
                     # line['product_id'] = product.id
                     # line['name'] = f"[{product.default_code}]{product.name}"
+                    account = request.env["account.account"].search([('code', '=', line.get('account_code'))])
+                    line['account_id'] = account.id
+                    analytic_account = request.env["account.analytic.account"].search([('code', '=', line.get('analytic_account_code'))])
+                    line['account_analytic_id'] = analytic_account.id
                     line['name'] = line.get('name')
                     line['invoice_id'] = bill.id
                     request.env['account.invoice.line'].create(line)
