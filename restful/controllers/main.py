@@ -207,6 +207,10 @@ class APIController(http.Controller):
                     line['account_id'] = account.id
                     analytic_account = request.env["account.analytic.account"].search([('code', '=', line.get('analytic_account_code'))])
                     line['account_analytic_id'] = analytic_account.id
+                    analytic_tag = request.env["account.analytic.tag"].search([('code', '=', line.get('analytic_tag_code'))])
+                    line['analytic_tag_ids'] = [(4, analytic_tag.id)]
+                    operating_unit = request.env["operating.unit"].search([('code', '=', line.get('ou_code'))])
+                    line['ou_id'] = operating_unit.id
                     line['name'] = line.get('name')
                     line['invoice_id'] = bill.id
                     request.env['account.invoice.line'].create(line)
