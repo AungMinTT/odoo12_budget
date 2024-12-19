@@ -5,6 +5,7 @@
         <field name="inherit_id" ref="account.invoice_supplier_form"/>
         <field name="arch" type="xml">
             <xpath expr="//sheet/group/group" position="inside">
+                <field name="analytic_tag_id"/>
                 <field name="ou_id"/>
             </xpath>
             <xpath expr="//sheet/notebook/page/field/tree//field[@name='analytic_tag_ids']" position="after">

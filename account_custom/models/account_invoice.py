@@ -4,6 +4,7 @@ from odoo import models, fields, api
 class AccountInvoice(models.Model):
     _inherit = "account.invoice"
 
+    analytic_tag_id = fields.Many2one("account.analytic.tag", "Analytic Tag")
     ou_id = fields.Many2one("operating.unit", "Operating Unit")
 
     @api.model

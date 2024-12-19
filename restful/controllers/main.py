@@ -138,34 +138,6 @@ class APIController(http.Controller):
     @validate_token
     @http.route('/api/bill/', type='http', auth="none", methods=['POST'], csrf=False)
     def create_bill(self, model=None, id=None, **payload):
-        """Create a new record.
-        Basic sage:
-        import requests
-
-        headers = {
-            'content-type': 'application/x-www-form-urlencoded',
-            'charset': 'utf-8',
-            'access-token': 'access_token'
-        }
-        data = {
-            'name': 'Babatope Ajepe',
-            'country_id': 105,
-            'child_ids': [
-                {
-                    'name': 'Contact',
-                    'type': 'contact'
-                },
-                {
-                    'name': 'Invoice',
-                   'type': 'invoice'
-                }
-            ],
-            'category_id': [{'id': 9}, {'id': 10}]
-        }
-        req = requests.post('%s/api/res.partner/' %
-                            base_url, headers=headers, data=data)
-
-        """
         ioc_name = model
         model = request.env[self._model].sudo().search(
             [('model', '=', 'account.invoice')], limit=1)
@@ -182,6 +154,20 @@ class APIController(http.Controller):
                         vendor = request.env['res.partner'].create({'name': payload.get('partner_name'), 'ref': payload.get('ref'), 'customer': False, 'supplier': True})
                 else:
                     vendor = request.env['res.partner'].create({'name': payload.get('partner_name'), 'ref': payload.get('ref'), 'customer': False, 'supplier': True })
+
+                journal = request.env['account.journal'].search([('code', '=', payload.get('journal_code'))])
+                if not journal:
+                    request.cr.rollback()
+                    return invalid_response('account.journal', "Journal does not exit in Finance System.")
+                analytic_tag = request.env["account.analytic.tag"].search(
+                    [('code', '=', payload.get('analytic_tag_code'))])
+                if not analytic_tag:
+                    request.cr.rollback()
+                    return invalid_response('account.analytic.tag', "Analytic Tag does not exit in Finance System.")
+                operating_unit = request.env["operating.unit"].search([('code', '=', payload.get('ou_code'))])
+                if not operating_unit:
+                    request.cr.rollback()
+                    return invalid_response('operating.unit', "Operation Unit does not exit in Finance System.")
                 bill_values = {
                     # 'name': payload.get('number'),
                     'number': payload.get('number'),
@@ -189,45 +175,141 @@ class APIController(http.Controller):
                     'state': payload.get('state'),
                     'partner_id': vendor.id,
                     'date_invoice': payload.get('date_invoice'),
-                    'date_due': payload.get('date_due')
+                    'date_due': payload.get('date_due'),
+                    'journal_id': journal.id,
+                    'analytic_tag_id': analytic_tag.id,
+                    'ou_id': operating_unit.id
                 }
                 bill = request.env['account.invoice'].with_context(context).sudo(request.uid).create(bill_values)
                 bill_line_values = payload.get('invoice_line_ids', [])
+                bill_line_list = []
                 for line in bill_line_values:
-                    # if line.get('product_ref'):
-                    #     product = request.env['product.product'].search([('default_code', '=', line.get('product_ref'))])
-                    #     if not product:
-                    #         product = request.env['product.product'].create({'name': line.get('product_name'), 'default_code': line.get('product_ref')})
-                    # else:
-                    #     product = request.env['product.product'].create(
-                    #         {'name': line.get('product_name'), 'default_code': line.get('product_ref')})
-                    # line['product_id'] = product.id
-                    # line['name'] = f"[{product.default_code}]{product.name}"
                     account = request.env["account.account"].search([('code', '=', line.get('account_code'))])
+                    if not account:
+                        request.cr.rollback()
+                        return invalid_response('account.account', "Account does not exit in Finance System.")
                     line['account_id'] = account.id
                     analytic_account = request.env["account.analytic.account"].search([('code', '=', line.get('analytic_account_code'))])
+                    if not analytic_account:
+                        request.cr.rollback()
+                        return invalid_response('account.analytic.tag', "Analytic Account does not exit in Finance System.")
                     line['account_analytic_id'] = analytic_account.id
                     analytic_tag = request.env["account.analytic.tag"].search([('code', '=', line.get('analytic_tag_code'))])
+                    if not analytic_tag:
+                        request.cr.rollback()
+                        return invalid_response('account.analytic.tag', "Analytic Tag does not exit in Finance System.")
                     line['analytic_tag_ids'] = [(4, analytic_tag.id)]
                     operating_unit = request.env["operating.unit"].search([('code', '=', line.get('ou_code'))])
+                    if not operating_unit:
+                        request.cr.rollback()
+                        return invalid_response('operating.unit', "Operation Unit does not exit in Finance System.")
                     line['ou_id'] = operating_unit.id
                     line['name'] = line.get('name')
                     line['invoice_id'] = bill.id
-                    request.env['account.invoice.line'].create(line)
-
+                    bill_line_list.append(line)
+                request.env['account.invoice.line'].create(bill_line_list)
                 bill.action_invoice_open()
                 bill.write({'number': payload.get('number'), 'move_name': payload.get('move_name')})
                 journal = request.env['account.move'].search([('id', '=', bill.move_id.id)])
                 journal.write({'name': payload.get('number')})
-
-                # resource = request.env[model.model].with_context(context).sudo().create(payload)
-                # resource = request.env[model.model].sudo().create(request.jsonrequest)
             except Exception as e:
                 request.cr.rollback()
-                return invalid_response('params', e)
+                return invalid_response('params', str(e))
             else:
                 data = {'id': bill.id}
                 if bill:
+                    return valid_response(data)
+                else:
+                    return valid_response(data)
+        return invalid_response('invalid object model', 'The model %s is not available in the registry.' % ioc_name)
+
+    @validate_token
+    @http.route('/api/journal/', type='http', auth="none", methods=['POST'], csrf=False)
+    def create_journal(self, model=None, id=None, **payload):
+        ioc_name = model
+        model = request.env[self._model].sudo().search(
+            [('model', '=', 'account.move')], limit=1)
+        if model:
+            try:
+                domain, fields, offset, limit, order, context = extract_arguments(
+                    payload)
+                if not context:
+                    context = request.env.context.copy()
+                payload = extract_value(payload)
+                journal = request.env['account.journal'].search([('code', '=', payload.get('journal_code'))])
+                if not journal:
+                    request.cr.rollback()
+                    return invalid_response('account.journal', "Journal does not exit in Finance System.")
+                analytic_tag = request.env["account.analytic.tag"].search(
+                    [('code', '=', payload.get('analytic_tag_code'))])
+                if not analytic_tag:
+                    request.cr.rollback()
+                    return invalid_response('account.analytic.tag', "Analytic Tag does not exit in Finance System.")
+                operating_unit = request.env["operating.unit"].search([('code', '=', payload.get('ou_code'))])
+                if not operating_unit:
+                    request.cr.rollback()
+                    return invalid_response('operating.unit', "Operation Unit does not exit in Finance System.")
+                journal_entries_values = {
+                    'date': payload.get('date'),
+                    'ref': payload.get('ref'),
+                    'journal_id': journal.id,
+                    'analytic_tag_id': analytic_tag.id,
+                    'ou_id': operating_unit.id,
+                    'state': payload.get('state'),
+                }
+                journal_entries = request.env['account.move'].with_context(context).sudo(request.uid).create(journal_entries_values)
+                journal_entries_line_values = payload.get('journal_line_values', [])
+                journal_line_list = []
+                for line in journal_entries_line_values:
+                    if line.get('credit') == 0.0:
+                        account = request.env["account.account"].search([('code', '=', line.get('account_code'))])
+                        if not account:
+                            request.cr.rollback()
+                            return invalid_response('account.account', "Account does not exit in Finance System.")
+                        line['account_id'] = account.id
+                        analytic_account = request.env["account.analytic.account"].search(
+                            [('code', '=', line.get('analytic_account_code'))])
+                        if not analytic_account:
+                            request.cr.rollback()
+                            return invalid_response('account.analytic.tag',
+                                                    "Analytic Account does not exit in Finance System.")
+                        line['analytic_account_id'] = analytic_account.id
+                        analytic_tag = request.env["account.analytic.tag"].search(
+                            [('code', '=', line.get('analytic_tag_code'))])
+                        if not analytic_tag:
+                            request.cr.rollback()
+                            return invalid_response('account.analytic.tag', "Analytic Tag does not exit in Finance System.")
+                        line['analytic_tag_ids'] = [(4, analytic_tag.id)]
+                        operating_unit = request.env["operating.unit"].search([('code', '=', line.get('ou_code'))])
+                        if not operating_unit:
+                            request.cr.rollback()
+                            return invalid_response('operating.unit', "Operation Unit does not exit in Finance System.")
+                        line['ou_id'] = operating_unit.id
+                        line['name'] = line.get('name')
+                        line['move_id'] = journal_entries.id
+                        # try:
+                        #     journal_line = request.env['account.move.line'].create(line)
+                        #     print(journal_line)
+                        # except Exception as e:
+                        #     print(e)
+                        journal_line_list.append(line)
+                    else:
+                        account = request.env["account.account"].search([('code', '=', line.get('account_code'))])
+                        if not account:
+                            request.cr.rollback()
+                            return invalid_response('account.account', "Account does not exit in Finance System.")
+                        line['account_id'] = account.id
+                        line['move_id'] = journal_entries.id
+                        journal_line_list.append(line)
+                request.env['account.move.line'].create(journal_line_list)
+                journal_entries.write({'name': payload.get('name')})
+
+            except Exception as e:
+                request.cr.rollback()
+                return invalid_response('params', str(e))
+            else:
+                data = {'id': journal_entries.id}
+                if journal_entries:
                     return valid_response(data)
                 else:
                     return valid_response(data)
