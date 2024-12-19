@@ -163,7 +163,7 @@ class APIController(http.Controller):
                     [('code', '=', payload.get('analytic_tag_code'))])
                 if not analytic_tag:
                     request.cr.rollback()
-                    return invalid_response('account.analytic.tag', "Analytic Tag does not exit in Finance System.")
+                    return invalid_response('account.analytic.tag', "Goal(Analytic Tag) does not exit in Finance System.")
                 operating_unit = request.env["operating.unit"].search([('code', '=', payload.get('ou_code'))])
                 if not operating_unit:
                     request.cr.rollback()
@@ -197,7 +197,7 @@ class APIController(http.Controller):
                     analytic_tag = request.env["account.analytic.tag"].search([('code', '=', line.get('analytic_tag_code'))])
                     if not analytic_tag:
                         request.cr.rollback()
-                        return invalid_response('account.analytic.tag', "Analytic Tag does not exit in Finance System.")
+                        return invalid_response('account.analytic.tag', "Goal(Analytic Tag) does not exit in Finance System.")
                     line['analytic_tag_ids'] = [(4, analytic_tag.id)]
                     operating_unit = request.env["operating.unit"].search([('code', '=', line.get('ou_code'))])
                     if not operating_unit:
@@ -244,7 +244,7 @@ class APIController(http.Controller):
                     [('code', '=', payload.get('analytic_tag_code'))])
                 if not analytic_tag:
                     request.cr.rollback()
-                    return invalid_response('account.analytic.tag', "Analytic Tag does not exit in Finance System.")
+                    return invalid_response('account.analytic.tag', "Goal(Analytic Tag) does not exit in Finance System.")
                 operating_unit = request.env["operating.unit"].search([('code', '=', payload.get('ou_code'))])
                 if not operating_unit:
                     request.cr.rollback()
@@ -278,7 +278,7 @@ class APIController(http.Controller):
                             [('code', '=', line.get('analytic_tag_code'))])
                         if not analytic_tag:
                             request.cr.rollback()
-                            return invalid_response('account.analytic.tag', "Analytic Tag does not exit in Finance System.")
+                            return invalid_response('account.analytic.tag', "Goal(Analytic Tag) does not exit in Finance System.")
                         line['analytic_tag_ids'] = [(4, analytic_tag.id)]
                         operating_unit = request.env["operating.unit"].search([('code', '=', line.get('ou_code'))])
                         if not operating_unit:
