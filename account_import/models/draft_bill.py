@@ -3,6 +3,8 @@ from odoo import fields, models
 
 class DraftBill(models.Model):
     _name = "draft.bill"
+    _description = "Draft Bill"
+    _inherit = ['mail.thread', 'mail.activity.mixin']
 
     name = fields.Char("Name")
     number = fields.Char("Number")
