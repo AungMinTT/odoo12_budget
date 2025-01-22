@@ -1,0 +1,95 @@
+<odoo>
+    <data>
+        <record id="draft_bill_form" model="ir.ui.view">
+            <field name="name">draft.bill.form</field>
+            <field name="model">draft.bill</field>
+            <field name="arch" type="xml">
+                    <form string="Draft Bill">
+                        <sheet>
+                            <span class="o_form_label">Bill </span>
+                            <div>
+                                <h1 class="mt0">
+                                    <field name="number" class="oe_inline" readonly="1"/>
+                                </h1>
+                            </div>
+                            <group>
+                                <group>
+                                    <field name="partner_id"/>
+                                    <field name="reference"/>
+                                    <field name="analytic_tag_id"/>
+                                    <field name="ou_id"/>
+                                </group>
+                                <group>
+                                    <field name="date_invoice"/>
+                                    <field name="date_due"/>
+                                    <field name="journal_id"/>
+                                </group>
+                            </group>
+                            <notebook>
+                                <page string="Bill">
+                                    <field name="draft_bill_line_ids">
+                                        <tree string="Bill lines" editable="bottom">
+                                            <field name="product_id"/>
+                                            <field name="name"/>
+                                            <field name="account_id"/>
+                                            <field name="account_analytic_id"/>
+                                            <field name="analytic_tag_id"/>
+                                            <field name="ou_id"/>
+                                            <field name="quantity"/>
+                                            <field name="price_unit"/>
+                                            <field name="price_subtotal"/>
+                                        </tree>
+                                    </field>
+                                    <group>
+                                        <group class="oe_subtotal_footer oe_right">
+                                            <field name="amount_total" class="oe_subtotal_footer_separator"/>
+                                        </group>
+                                    </group>
+                                </page>
+                            </notebook>
+                        </sheet>
+                    </form>
+            </field>
+        </record>
+
+        <record id="draft_bill_tree" model="ir.ui.view">
+            <field name="name">draft.bill.tree</field>
+            <field name="model">draft.bill</field>
+            <field name="arch" type="xml">
+                    <tree string="Draft Bill">
+                        <field name="name"/>
+                        <field name="partner_id"/>
+                        <field name="reference"/>
+                        <field name="analytic_tag_id"/>
+                        <field name="ou_id"/>
+                        <field name="date_invoice"/>
+                        <field name="date_due"/>
+                        <field name="journal_id"/>
+                    </tree>
+            </field>
+        </record>
+
+        <record id="draft_bill_search" model="ir.ui.view">
+            <field name="name">draft.bill.search</field>
+            <field name="model">draft.bill</field>
+            <field name="arch" type="xml">
+                <search string="Search Draft Bill">
+                    <field name="name"/>
+                    <field name="reference"/>
+                </search>
+            </field>
+        </record>
+
+        <record model="ir.actions.act_window" id="draft_bill_action">
+            <field name="name">Draft Bill</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">draft.bill</field>
+            <field name="view_mode">tree,form</field>
+            <field name="search_view_id" ref="draft_bill_search" />
+        </record>
+
+        <menuitem id="draft_menu" name="Draft" parent="account.menu_finance" sequence="1"/>
+        <menuitem id="draft_bill_menu" name="Draft Bill" parent="account_import.draft_menu" action="draft_bill_action"/>
+
+    </data>
+</odoo>
